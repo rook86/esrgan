@@ -8,6 +8,7 @@ import sys
 import torchvision.transforms as transforms
 from torchvision.utils import save_image, make_grid
 
+import torch.utils.data.distributed
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torchsummary import summary
@@ -30,13 +31,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--epoch", type=int, default=0, help="epoch to start training from")
 parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=1, help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+parser.add_argument("--lr", type=float, default=0.00002, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--decay_epoch", type=int, default=100, help="epoch from which to start lr decay")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
-parser.add_argument("--hr_height", type=int, default=1024, help="high res. image height")
-parser.add_argument("--hr_width", type=int, default=1024, help="high res. image width")
+parser.add_argument("--hr_height", type=int, default=512, help="high res. image height")
+parser.add_argument("--hr_width", type=int, default=512, help="high res. image width")
 parser.add_argument("--channels", type=int, default=3, help="number of image channels")
 parser.add_argument("--sample_interval", type=int, default=100, help="interval between saving image samples")
 parser.add_argument("--checkpoint_interval", type=int, default=-1, help="interval between model checkpoints")
@@ -47,7 +48,7 @@ cuda = torch.cuda.is_available()
 hr_shape = (opt.hr_height, opt.hr_width)
 
 # Initialize generator and discriminator
-generator =  Generator(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=2, num_grow_ch=32)
+generator =  Generator(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=10, num_grow_ch=32)
 discriminator = Discriminator(input_shape=(opt.channels, *hr_shape))
 
 # Losses
@@ -55,9 +56,12 @@ perceptual_loss = PerceptualLoss()
 gan_loss = GANLoss()
 criterion_MSE = torch.nn.MSELoss()
 
+device = torch.device("cuda")
 if cuda:
-    generator = generator.cuda()
-    discriminator = discriminator.cuda()
+    generator = torch.nn.DataParallel(generator, device_ids=[0, 1])
+    discriminator = torch.nn.DataParallel(discriminator, device_ids=[0, 1])
+    generator.to(device)
+    discriminator.to(device)
     criterion_MSE = criterion_MSE.cuda()
     criterion_perceptual = perceptual_loss.cuda()
     criterion_gan = gan_loss.cuda()
@@ -132,7 +136,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
             total_loss_G += loss_G
             loss_G.backward()
             optimizer_G.step()
-        gen_hr = generator(imgs_lr)
 
         # ---------------------
         #  Train Discriminator

@@ -31,12 +31,6 @@ NAMES = {
 
 
 def insert_bn(names):
-    """Insert bn layer after each conv.
-    Args:
-        names (list): The list of layer names.
-    Returns:
-        list: The list of layer names with bn layers.
-    """
     names_bn = []
     for name in names:
         names_bn.append(name)
@@ -47,34 +41,15 @@ def insert_bn(names):
 
 
 class VGGFeatureExtractor(nn.Module):
-    """VGG network for feature extraction.
-    In this implementation, we allow users to choose whether use normalization
-    in the input feature and the type of vgg network. Note that the pretrained
-    path must fit the vgg type.
-    Args:
-        layer_name_list (list[str]): Forward function returns the corresponding
-            features according to the layer_name_list.
-            Example: {'relu1_1', 'relu2_1', 'relu3_1'}.
-        vgg_type (str): Set the type of vgg network. Default: 'vgg19'.
-        use_input_norm (bool): If True, normalize the input image. Importantly,
-            the input feature must in the range [0, 1]. Default: True.
-        range_norm (bool): If True, norm images with range [-1, 1] to [0, 1].
-            Default: False.
-        requires_grad (bool): If true, the parameters of VGG network will be
-            optimized. Default: False.
-        remove_pooling (bool): If true, the max pooling operations in VGG net
-            will be removed. Default: False.
-        pooling_stride (int): The stride of max pooling operation. Default: 2.
-    """
 
     def __init__(self,
-                 layer_name_list,
-                 vgg_type='vgg19',
-                 use_input_norm=True,
-                 range_norm=False,
-                 requires_grad=False,
-                 remove_pooling=False,
-                 pooling_stride=2):
+                layer_name_list,
+                vgg_type='vgg19',
+                use_input_norm=True,
+                range_norm=False,
+                requires_grad=False,
+                remove_pooling=False,
+                pooling_stride=2):
         super(VGGFeatureExtractor, self).__init__()
 
         self.layer_name_list = layer_name_list
@@ -126,12 +101,6 @@ class VGGFeatureExtractor(nn.Module):
             self.register_buffer('std', torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
 
     def forward(self, x):
-        """Forward function.
-        Args:
-            x (Tensor): Input tensor with shape (n, c, h, w).
-        Returns:
-            Tensor: Forward results.
-        """
         if self.range_norm:
             x = (x + 1) / 2
         if self.use_input_norm:

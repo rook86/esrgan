@@ -14,7 +14,7 @@ class Discriminator(nn.Module):
         norm = spectral_norm
         num_in_ch = 3
         num_feat = 64
-       
+
         # the first convolution
         self.conv0 = nn.Conv2d(num_in_ch, num_feat, kernel_size=3, stride=1, padding=1)
         # downsample
